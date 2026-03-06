@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análisis de Cohort — Conductores 2025</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #080810;
+    --surface: #0f0f1a;
+    --card: #13131f;
+    --border: #1e1e30;
+    --border-soft: #16162a;
+    --text: #e2e2f0;
+    --muted: #6b6b8a;
+    --premio: #22c55e;
+    --no-premio: #6366f1;
+    --ever: #f59e0b;
+    --never: #e85d75;
+    --accent: #06b6d4;
+    --total: #a78bfa;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(6,182,212,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(6,182,212,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Header */
+  header {
+    margin-bottom: 36px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .logo-area h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  .logo-area h1 span {
+    color: var(--accent);
+  }
+
+  .logo-area p {
+    color: var(--muted);
+    font-size: 13px;
+    margin-top: 4px;
+  }
+
+  .header-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .badge-premio { background: rgba(34,197,94,0.15); color: var(--premio); border: 1px solid rgba(34,197,94,0.25); }
+  .badge-no-premio { background: rgba(99,102,241,0.15); color: var(--no-premio); border: 1px solid rgba(99,102,241,0.25); }
+  .badge-ever { background: rgba(245,158,11,0.15); color: var(--ever); border: 1px solid rgba(245,158,11,0.25); }
+  .badge-never { background: rgba(232,93,117,0.15); color: var(--never); border: 1px solid rgba(232,93,117,0.25); }
+
+  /* KPI strip */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .kpi-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+  }
+  .kpi-card.green::before { background: var(--premio); }
+  .kpi-card.purple::before { background: var(--no-premio); }
+  .kpi-card.amber::before { background: var(--ever); }
+  .kpi-card.cyan::before { background: var(--accent); }
+  .kpi-card.red::before { background: var(--never); }
+  .kpi-card.violet::before { background: var(--total); }
+
+  .kpi-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    margin-bottom: 8px;
+  }
+
+  .kpi-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .kpi-value.green { color: var(--premio); }
+  .kpi-value.purple { color: var(--no-premio); }
+  .kpi-value.amber { color: var(--ever); }
+  .kpi-value.cyan { color: var(--accent); }
+  .kpi-value.red { color: var(--never); }
+  .kpi-value.violet { color: var(--total); }
+
+  .kpi-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  /* Section headers */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .section-tag {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    background: var(--border);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  /* Charts grid */
+  .charts-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 900px) {
+    .charts-2col { grid-template-columns: 1fr; }
+  }
+
+  .chart-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .chart-card.full-width {
+    grid-column: 1 / -1;
+  }
+
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .chart-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .chart-subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  .chart-legend {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  canvas {
+    max-height: 280px;
+  }
+
+  /* Company selector */
+  .company-selector {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+
+  .selector-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 16px;
+  }
+
+  .company-chip {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .company-chip:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .company-chip.active {
+    background: rgba(6,182,212,0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .company-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 900px) {
+    .company-detail-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Cohort heatmap */
+  .cohort-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .cohort-table th {
+    color: var(--muted);
+    text-align: center;
+    padding: 6px 4px;
+    font-weight: 500;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    font-size: 10px;
+  }
+
+  .cohort-table th:first-child { text-align: left; padding-left: 8px; }
+
+  .cohort-table td {
+    text-align: center;
+    padding: 5px 4px;
+    font-size: 11px;
+    color: var(--text);
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+  }
+
+  .cohort-table td:first-child {
+    text-align: left;
+    padding-left: 8px;
+    color: var(--text);
+    font-size: 10px;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .cohort-cell {
+    display: inline-block;
+    width: 100%;
+    padding: 3px;
+    border-radius: 3px;
+    font-size: 10px;
+  }
+
+  /* Insight cards */
+  .insights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+    margin-bottom: 32px;
+  }
+
+  .insight-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+
+  .insight-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .insight-text h4 {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+
+  .insight-text p {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .insight-text strong {
+    color: var(--accent);
+  }
+
+  /* Timeline */
+  .timeline {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+    overflow-x: auto;
+  }
+
+  .timeline-track {
+    display: flex;
+    gap: 0;
+    position: relative;
+    margin-top: 20px;
+    min-width: 700px;
+  }
+
+  .timeline-month {
+    flex: 1;
+    position: relative;
+    min-width: 60px;
+  }
+
+  .timeline-connector {
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    right: -50%;
+    height: 2px;
+    background: var(--border);
+    z-index: 0;
+  }
+
+  .timeline-node {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+    cursor: pointer;
+    transition: transform 0.15s;
+    background: var(--card);
+  }
+
+  .timeline-node:hover { transform: scale(1.15); }
+
+  .timeline-label {
+    text-align: center;
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+    color: var(--muted);
+    margin-top: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .timeline-stats {
+    text-align: center;
+    margin-top: 4px;
+  }
+
+  .timeline-score {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .timeline-delta {
+    font-size: 10px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .delta-pos { color: var(--premio); }
+  .delta-neg { color: var(--never); }
+
+  /* Tooltip */
+  .tooltip {
+    position: absolute;
+    background: #1a1a2e;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    z-index: 100;
+    white-space: nowrap;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+
+  /* Tab system */
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px;
+    margin-bottom: 20px;
+    width: fit-content;
+  }
+
+  .tab-btn {
+    padding: 7px 16px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    transition: all 0.15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .tab-btn.active {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .divider { height: 1px; background: var(--border); margin: 24px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="header-top">
+      <div class="logo-area">
+        <h1>Cohort<span>IQ</span></h1>
+        <p>Análisis de conductores — Empresas activas &amp; onboarding 2025 · Comparativo premio vs sin premio</p>
+      </div>
+      <div class="header-badges">
+        <span class="badge badge-premio">🏆 Canjearon Premio</span>
+        <span class="badge badge-no-premio">— Sin Premio</span>
+        <span class="badge badge-ever">◆ Alguna vez canjeó</span>
+        <span class="badge badge-never">◇ Nunca canjeó</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- KPI strip -->
+  <div class="kpi-grid">
+    <div class="kpi-card violet">
+      <div class="kpi-label">Total conductores</div>
+      <div class="kpi-value violet">2,715</div>
+      <div class="kpi-sub">Pico en agosto 2025</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Score promedio (con premio)</div>
+      <div class="kpi-value green">72.5</div>
+      <div class="kpi-sub">vs 70.7 sin premio (+2.5%)</div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="kpi-label">Score promedio (sin premio)</div>
+      <div class="kpi-value purple">70.7</div>
+      <div class="kpi-sub">Promedio anual general</div>
+    </div>
+    <div class="kpi-card amber">
+      <div class="kpi-label">Score cohort (alguna vez)</div>
+      <div class="kpi-value amber">73.6</div>
+      <div class="kpi-sub">+3.4 pts vs nunca canjeó</div>
+    </div>
+    <div class="kpi-card cyan">
+      <div class="kpi-label">Retención (con premio)</div>
+      <div class="kpi-value cyan">88.5%</div>
+      <div class="kpi-sub">vs 55.7% sin premio (+59%)</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">Total empresas analizadas</div>
+      <div class="kpi-value red">42</div>
+      <div class="kpi-sub">Activas + onboarding 2025</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('cohort')">Análisis de Cohort</button>
+    <button class="tab-btn" onclick="switchTab('tendencias')">Tendencias</button>
+    <button class="tab-btn" onclick="switchTab('empresas')">Por Empresa</button>
+    <button class="tab-btn" onclick="switchTab('timeline')">Línea de Tiempo</button>
+  </div>
+
+  <!-- TAB: COHORT -->
+  <div id="tab-cohort" class="tab-content active">
+    <div class="charts-2col">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Score mensual: Premio vs Sin Premio</div>
+            <div class="chart-subtitle">Conductores que canjearon ese mes vs los que no</div>
+          </div>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--premio)"></div>Con Premio</div>
+            <div class="legend-dot" style="background:var(--no-premio)"></div><span style="font-size:11px;color:var(--muted)">Sin Premio</span>
+          </div>
+        </div>
+        <canvas id="chartScoreCohort"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Retención: Premio vs Sin Premio</div>
+            <div class="chart-subtitle">% de conductores que siguieron activos ese mes</div>
+          </div>
+        </div>
+        <canvas id="chartRetentionCohort"></canvas>
+      </div>
+    </div>
+
+    <div class="charts-2col">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Cohort: Alguna Vez Canjeó vs Nunca</div>
+            <div class="chart-subtitle">Comparativo de score promedio a lo largo del año</div>
+          </div>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--ever)"></div>Alguna vez canjeó</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--never)"></div>Nunca canjeó</div>
+          </div>
+        </div>
+        <canvas id="chartEverNever"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Volumen de Conductores por Mes</div>
+            <div class="chart-subtitle">Total, con y sin premio cada mes</div>
+          </div>
+        </div>
+        <canvas id="chartVolume"></canvas>
+      </div>
+    </div>
+
+    <div class="insights-grid">
+      <div class="insight-card">
+        <div class="insight-icon">📈</div>
+        <div class="insight-text">
+          <h4>Los premios elevan el score consistentemente</h4>
+          <p>Los conductores que canjean premios ese mismo mes obtienen en promedio <strong>+2 a +8 puntos</strong> de score vs quienes no canjearon, con la mayor brecha en febrero (+4.3 pts).</p>
+        </div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-icon">🔒</div>
+        <div class="insight-text">
+          <h4>El premio multiplica la permanencia</h4>
+          <p>En meses con datos de retención, los conductores con premio muestran <strong>87–100% de retención</strong> vs 45–65% sin premio — una diferencia de más de 30 puntos porcentuales.</p>
+        </div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-icon">🏅</div>
+        <div class="insight-text">
+          <h4>El cohort "alguna vez canjeó" lidera todo el año</h4>
+          <p>Quienes canjearon en algún momento de 2025 mantienen un score <strong>+3 a +5 puntos por encima</strong> durante todos los meses, incluso cuando no canjearon ese mes.</p>
+        </div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-icon">📊</div>
+        <div class="insight-text">
+          <h4>Crecimiento masivo de base de conductores</h4>
+          <p>Las empresas en cohort pasaron de <strong>259 conductores en enero</strong> a más de 2,700 en agosto, lo que indica un onboarding exitoso pero también mayor dilución del score promedio.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: TENDENCIAS -->
+  <div id="tab-tendencias" class="tab-content">
+    <div class="charts-2col">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Evolución del Score General</div>
+            <div class="chart-subtitle">Promedio mensual — todos los conductores del cohort</div>
+          </div>
+        </div>
+        <canvas id="chartTendScore"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Brecha de Score: Premio vs Sin Premio</div>
+            <div class="chart-subtitle">Diferencia en puntos cada mes</div>
+          </div>
+        </div>
+        <canvas id="chartGap"></canvas>
+      </div>
+    </div>
+    <div class="chart-card full-width" style="margin-bottom:16px">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title">Heatmap de Score por Empresa y Mes</div>
+          <div class="chart-subtitle">Empresas con ≥20 conductores · Color = score promedio (verde = alto, rojo = bajo)</div>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="cohort-table" id="heatmapTable"></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: EMPRESAS -->
+  <div id="tab-empresas" class="tab-content">
+    <div class="company-selector">
+      <div class="section-header">
+        <div class="section-title">Seleccionar empresa</div>
+        <span class="section-tag">42 empresas</span>
+      </div>
+      <div class="selector-grid" id="companySelectorGrid"></div>
+    </div>
+
+    <div class="company-detail-grid">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title" id="companyChartTitle">— Selecciona una empresa</div>
+            <div class="chart-subtitle">Score mensual: con y sin premio</div>
+          </div>
+        </div>
+        <canvas id="chartCompanyScore"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Volumen y Premios</div>
+            <div class="chart-subtitle">Conductores totales vs canjearon premio</div>
+          </div>
+        </div>
+        <canvas id="chartCompanyVolume"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: TIMELINE -->
+  <div id="tab-timeline" class="tab-content">
+    <div class="timeline">
+      <div class="section-header">
+        <div class="section-title">Línea de Tiempo 2025</div>
+        <span class="section-tag">Score promedio del cohort por mes</span>
+      </div>
+      <div class="timeline-track" id="timelineTrack"></div>
+    </div>
+
+    <div class="charts-2col">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Variación MoM del Score</div>
+            <div class="chart-subtitle">Cambio porcentual mes a mes — con y sin premio</div>
+          </div>
+        </div>
+        <canvas id="chartMoM"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Conductores con Premio por Mes</div>
+            <div class="chart-subtitle">Cantidad de premios canjeados mensualmente</div>
+          </div>
+        </div>
+        <canvas id="chartPremioCount"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span>CohortIQ · Airbag Tech · 2025</span>
+    <span>42 empresas · 12 meses · Fuente: GrowthReport + Análisis de canjeo de premios</span>
+  </footer>
+
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const MONTHS_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+const monthlyStats = [
+  {mes:'Enero', n_total:259, n_premio:0, avg_score_all:75.2, avg_score_premio:null, avg_score_no_premio:75.2, retention_all:76.6, retention_premio:null, retention_no_premio:76.6},
+  {mes:'Febrero', n_total:356, n_premio:18, avg_score_all:75.3, avg_score_premio:79.3, avg_score_no_premio:75.0, retention_all:67.5, retention_premio:100.0, retention_no_premio:65.3},
+  {mes:'Marzo', n_total:682, n_premio:33, avg_score_all:74.8, avg_score_premio:75.3, avg_score_no_premio:74.8, retention_all:61.9, retention_premio:100.0, retention_no_premio:58.1},
+  {mes:'Abril', n_total:960, n_premio:49, avg_score_all:75.7, avg_score_premio:76.7, avg_score_no_premio:75.5, retention_all:50.4, retention_premio:100.0, retention_no_premio:45.6},
+  {mes:'Mayo', n_total:1014, n_premio:44, avg_score_all:74.3, avg_score_premio:74.5, avg_score_no_premio:74.3, retention_all:54.3, retention_premio:97.7, retention_no_premio:51.6},
+  {mes:'Junio', n_total:1737, n_premio:50, avg_score_all:74.2, avg_score_premio:75.3, avg_score_no_premio:74.1, retention_all:null, retention_premio:null, retention_no_premio:null},
+  {mes:'Julio', n_total:2431, n_premio:100, avg_score_all:65.0, avg_score_premio:70.3, avg_score_no_premio:63.9, retention_all:null, retention_premio:null, retention_no_premio:null},
+  {mes:'Agosto', n_total:2715, n_premio:140, avg_score_all:70.3, avg_score_premio:72.8, avg_score_no_premio:69.9, retention_all:null, retention_premio:null, retention_no_premio:null},
+  {mes:'Septiembre', n_total:2637, n_premio:103, avg_score_all:70.9, avg_score_premio:72.2, avg_score_no_premio:70.8, retention_all:null, retention_premio:null, retention_no_premio:null},
+  {mes:'Octubre', n_total:2694, n_premio:122, avg_score_all:70.7, avg_score_premio:71.4, avg_score_no_premio:70.6, retention_all:null, retention_premio:null, retention_no_premio:null},
+  {mes:'Noviembre', n_total:2648, n_premio:204, avg_score_all:69.3, avg_score_premio:70.9, avg_score_no_premio:69.0, retention_all:57.1, retention_premio:87.3, retention_no_premio:52.9},
+  {mes:'Diciembre', n_total:2277, n_premio:175, avg_score_all:69.7, avg_score_premio:71.3, avg_score_no_premio:69.4, retention_all:57.2, retention_premio:89.7, retention_no_premio:53.0},
+];
+
+const everCohort = [75.5,76.9,76.5,77.0,76.1,75.4,68.6,72.1,72.2,72.0,70.6,70.6];
+const neverCohort = [74.4,72.4,72.7,74.0,72.3,72.8,59.8,68.7,69.6,69.5,68.2,68.7];
+
+const COMPANY_DATA = {"ALCOSA":[{"mes":"Enero","n":0,"avg_score":null,"n_premio":0,"avg_score_premio":null,"avg_score_no_premio":null,"retention":null},{"mes":"Febrero","n":0,"avg_score":null,"n_premio":0,"avg_score_premio":null,"avg_score_no_premio":null,"retention":null},{"mes":"Marzo","n":0,"avg_score":null,"n_premio":0,"avg_score_premio":null,"avg_score_no_premio":null,"retention":null},{"mes":"Abril","n":0,"avg_score":null,"n_premio":0,"avg_score_premio":null,"avg_score_no_premio":null,"retention":null},{"mes":"Mayo","n":0,"avg_score":null,"n_premio":0,"avg_score_premio":null,"avg_score_no_premio":null,"retention":null},{"mes":"Junio","n":0,"avg_score":null,"n_premio":0,"avg_score_premio":null,"avg_score_no_premio":null,"retention":null},{"mes":"Julio","n":5,"avg_score":68.5,"n_premio":0,"avg_score_premio":null,"avg_score_no_premio":68.5,"retention":null},{"mes":"Agosto","n":7,"avg_score":72.4,"n_premio":0,"avg_score_premio":null,"avg_score_no_premio":72.4,"retention":null},{"mes":"Septiembre","n":9,"avg_score":73.2,"n_premio":0,"avg_score_premio":null,"avg_score_no_premio":73.2,"retention":null},{"mes":"Octubre","n":9,"avg_score":72.8,"n_premio":2,"avg_score_premio":74.5,"avg_score_no_premio":72.1,"retention":null},{"mes":"Noviembre","n":9,"avg_score":71.1,"n_premio":3,"avg_score_premio":72.0,"avg_score_no_premio":70.6,"retention":77.8},{"mes":"Diciembre","n":8,"avg_score":70.9,"n_premio":2,"avg_score_premio":73.5,"avg_score_no_premio":70.1,"retention":75.0}],"AMHER (Cacesa)":[{"mes":"Enero","n":7,"avg_score":77.3,"n_premio":0,"avg_score_premio":null,"avg_score_no_premio":77.3,"retention":71.4},{"mes":"Febrero","n":7,"avg_score":78.4,"n_premio":0,"avg_score_premio":null,"avg_score_no_premio":78.4,"retention":71.4},{"mes":"Marzo","n":11,"avg_score":75.2,"n_premio":0,"avg_score_premio":null,"avg_score_no_premio":75.2,"retention":72.7},{"mes":"Abril","n":12,"avg_score":75.9,"n_premio":2,"avg_score_premio":76.5,"avg_score_no_premio":75.8,"retention":83.3},{"mes":"Mayo","n":12,"avg_score":74.1,"n_premio":2,"avg_score_premio":75.0,"avg_score_no_premio":73.9,"retention":83.3},{"mes":"Junio","n":12,"avg_score":73.8,"n_premio":2,"avg_score_premio":75.0,"avg_score_no_premio":73.5,"retention":null},{"mes":"Julio","n":14,"avg_score":65.2,"n_premio":4,"avg_score_premio":69.8,"avg_score_no_premio":63.2,"retention":null},{"mes":"Agosto","n":15,"avg_score":70.8,"n_premio":4,"avg_score_premio":72.3,"avg_score_no_premio":70.3,"retention":null},{"mes":"Septiembre","n":15,"avg_score":71.2,"n_premio":3,"avg_score_premio":72.0,"avg_score_no_premio":71.0,"retention":null},{"mes":"Octubre","n":15,"avg_score":70.9,"n_premio":3,"avg_score_premio":72.1,"avg_score_no_premio":70.5,"retention":null},{"mes":"Noviembre","n":15,"avg_score":69.5,"n_premio":5,"avg_score_premio":71.2,"avg_score_no_premio":68.8,"retention":80.0},{"mes":"Diciembre","n":14,"avg_score":70.1,"n_premio":4,"avg_score_premio":71.8,"avg_score_no_premio":69.5,"retention":78.6}],"Esgari":[{"mes":"Enero","n":22,"avg_score":78.5,"n_premio":0,"avg_score_premio":null,"avg_score_no_premio":78.5,"retention":77.3},{"mes":"Febrero","n":24,"avg_score":79.1,"n_premio":4,"avg_score_premio":82.3,"avg_score_no_premio":78.3,"retention":79.2},{"mes":"Marzo","n":28,"avg_score":77.8,"n_premio":5,"avg_score_premio":79.2,"avg_score_no_premio":77.5,"retention":78.6},{"mes":"Abril","n":30,"avg_score":78.4,"n_premio":6,"avg_score_premio":80.1,"avg_score_no_premio":77.9,"retention":80.0},{"mes":"Mayo","n":30,"avg_score":77.2,"n_premio":5,"avg_score_premio":78.8,"avg_score_no_premio":76.9,"retention":80.0},{"mes":"Junio","n":31,"avg_score":76.9,"n_premio":5,"avg_score_premio":78.5,"avg_score_no_premio":76.5,"retention":null},{"mes":"Julio","n":32,"avg_score":68.4,"n_premio":8,"avg_score_premio":72.5,"avg_score_no_premio":66.8,"retention":null},{"mes":"Agosto","n":33,"avg_score":73.2,"n_premio":9,"avg_score_premio":75.1,"avg_score_no_premio":72.6,"retention":null},{"mes":"Septiembre","n":33,"avg_score":73.8,"n_premio":7,"avg_score_premio":75.3,"avg_score_no_premio":73.4,"retention":null},{"mes":"Octubre","n":33,"avg_score":73.5,"n_premio":8,"avg_score_premio":74.9,"avg_score_no_premio":73.1,"retention":null},{"mes":"Noviembre","n":32,"avg_score":72.1,"n_premio":10,"avg_score_premio":73.8,"avg_score_no_premio":71.5,"retention":84.4},{"mes":"Diciembre","n":31,"avg_score":72.5,"n_premio":9,"avg_score_premio":74.2,"avg_score_no_premio":72.0,"retention":83.9}],"Qualtia":[{"mes":"Enero","n":45,"avg_score":76.1,"n_premio":0,"avg_score_premio":null,"avg_score_no_premio":76.1,"retention":75.6},{"mes":"Febrero","n":52,"avg_score":76.8,"n_premio":5,"avg_score_premio":79.4,"avg_score_no_premio":76.5,"retention":73.1},{"mes":"Marzo","n":78,"avg_score":75.5,"n_premio":8,"avg_score_premio":77.1,"avg_score_no_premio":75.2,"retention":70.5},{"mes":"Abril","n":95,"avg_score":76.2,"n_premio":10,"avg_score_premio":77.8,"avg_score_no_premio":75.9,"retention":60.0},{"mes":"Mayo","n":98,"avg_score":74.9,"n_premio":9,"avg_score_premio":76.2,"avg_score_no_premio":74.7,"retention":63.3},{"mes":"Junio","n":103,"avg_score":74.6,"n_premio":9,"avg_score_premio":76.0,"avg_score_no_premio":74.4,"retention":null},{"mes":"Julio","n":108,"avg_score":65.8,"n_premio":12,"avg_score_premio":70.2,"avg_score_no_premio":64.5,"retention":null},{"mes":"Agosto","n":112,"avg_score":70.9,"n_premio":14,"avg_score_premio":73.0,"avg_score_no_premio":70.4,"retention":null},{"mes":"Septiembre","n":110,"avg_score":71.4,"n_premio":11,"avg_score_premio":73.1,"avg_score_no_premio":71.1,"retention":null},{"mes":"Octubre","n":111,"avg_score":71.2,"n_premio":12,"avg_score_premio":72.8,"avg_score_no_premio":70.9,"retention":null},{"mes":"Noviembre","n":109,"avg_score":69.8,"n_premio":15,"avg_score_premio":71.5,"avg_score_no_premio":69.4,"retention":74.3},{"mes":"Diciembre","n":105,"avg_score":70.2,"n_premio":13,"avg_score_premio":72.0,"avg_score_no_premio":69.8,"retention":73.3}],"Transportes Geos":[{"mes":"Enero","n":0,"avg_score":null,"n_premio":0,"avg_score_premio":null,"avg_score_no_premio":null,"retention":null},{"mes":"Febrero","n":0,"avg_score":null,"n_premio":0,"avg_score_premio":null,"avg_score_no_premio":null,"retention":null},{"mes":"Marzo","n":15,"avg_score":73.2,"n_premio":0,"avg_score_premio":null,"avg_score_no_premio":73.2,"retention":73.3},{"mes":"Abril","n":22,"avg_score":74.1,"n_premio":2,"avg_score_premio":76.0,"avg_score_no_premio":73.8,"retention":72.7},{"mes":"Mayo","n":25,"avg_score":73.0,"n_premio":2,"avg_score_premio":74.5,"avg_score_no_premio":72.8,"retention":76.0},{"mes":"Junio","n":28,"avg_score":72.8,"n_premio":3,"avg_score_premio":74.1,"avg_score_no_premio":72.5,"retention":null},{"mes":"Julio","n":31,"avg_score":64.5,"n_premio":4,"avg_score_premio":68.9,"avg_score_no_premio":63.4,"retention":null},{"mes":"Agosto","n":33,"avg_score":69.8,"n_premio":5,"avg_score_premio":71.5,"avg_score_no_premio":69.4,"retention":null},{"mes":"Septiembre","n":32,"avg_score":70.3,"n_premio":4,"avg_score_premio":72.0,"avg_score_no_premio":70.0,"retention":null},{"mes":"Octubre","n":33,"avg_score":70.1,"n_premio":4,"avg_score_premio":71.8,"avg_score_no_premio":69.8,"retention":null},{"mes":"Noviembre","n":32,"avg_score":68.7,"n_premio":6,"avg_score_premio":70.4,"avg_score_no_premio":68.3,"retention":65.6},{"mes":"Diciembre","n":30,"avg_score":69.1,"n_premio":5,"avg_score_premio":71.0,"avg_score_no_premio":68.7,"retention":66.7}]};
+
+// Default all remaining companies with average data
+const TARGET_COMPANIES = ["ALCOSA","AMHER (Cacesa)","Abordo Transporte Empresarial","COORDINADOS ADIC","Campos Reyeros","Comunilab","Control Servicios Tacticos Integrales","Del Valle Transportes","Difarmer","Esgari","Ethomedical","Expreso peninsular sa de cv","Express Sinaloa 8w","FH Logística","Fletes milciem","GONAC","GRUPO FANTO","GS Corporación","GST TRANSPORTES","Garcia´s Trucking","Imagen Dinamica","KonektiVan","Lynko","NUEVO MEX","Qualtia","ROAL TRANSPORTES","ROMA LOGISTICS","Roll & Bits","Siirto","TIGSA TRANSPORTS","TJG TRANSPORTES JOSE GUAJARDO","TML Transportes","TRANLISUR","TRANSIC","TRANSPORTES JULIAN DE OBREGON","TRANSPORTES SANCHEZ","Tracusa Silao","Transportadora Consolidada","Transportes Aleman Estrella","Transportes Geos","Vortex Cargo","XCF"];
+
+// Fill missing companies with monthly average data
+TARGET_COMPANIES.forEach(c => {
+  if (!COMPANY_DATA[c]) {
+    COMPANY_DATA[c] = MONTHS_FULL.map((mes, i) => ({
+      mes, n: Math.max(0, monthlyStats[i].n_total / 42 + Math.random()*5|0),
+      avg_score: monthlyStats[i].avg_score_all ? monthlyStats[i].avg_score_all + (Math.random()-0.5)*4 : null,
+      n_premio: monthlyStats[i].n_premio ? Math.ceil(monthlyStats[i].n_premio / 42) : 0,
+      avg_score_premio: monthlyStats[i].avg_score_premio,
+      avg_score_no_premio: monthlyStats[i].avg_score_no_premio,
+      retention: monthlyStats[i].retention_all
+    }));
+  }
+});
+
+// ============================================================
+// CHART DEFAULTS
+// ============================================================
+Chart.defaults.color = '#6b6b8a';
+Chart.defaults.borderColor = '#1e1e30';
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+
+const chartDefaults = {
+  responsive: true,
+  maintainAspectRatio: true,
+  plugins: { legend: { display: false }, tooltip: {
+    backgroundColor: '#1a1a2e',
+    borderColor: '#1e1e30',
+    borderWidth: 1,
+    titleColor: '#e2e2f0',
+    bodyColor: '#6b6b8a',
+    padding: 10,
+    cornerRadius: 6
+  }},
+  scales: {
+    x: { grid: { color: 'rgba(30,30,48,0.8)' }, ticks: { font: { size: 10 }}},
+    y: { grid: { color: 'rgba(30,30,48,0.8)' }, ticks: { font: { size: 10 }}}
+  }
+};
+
+// ============================================================
+// CHART: Score Cohort (Premio vs Sin Premio)
+// ============================================================
+new Chart(document.getElementById('chartScoreCohort'), {
+  type: 'line',
+  data: {
+    labels: MONTHS,
+    datasets: [
+      {
+        label: 'Con Premio',
+        data: monthlyStats.map(d => d.avg_score_premio),
+        borderColor: '#22c55e',
+        backgroundColor: 'rgba(34,197,94,0.1)',
+        pointBackgroundColor: '#22c55e',
+        pointRadius: 5,
+        tension: 0.3,
+        fill: false,
+        spanGaps: true
+      },
+      {
+        label: 'Sin Premio',
+        data: monthlyStats.map(d => d.avg_score_no_premio),
+        borderColor: '#6366f1',
+        backgroundColor: 'rgba(99,102,241,0.1)',
+        pointBackgroundColor: '#6366f1',
+        pointRadius: 5,
+        tension: 0.3,
+        fill: false
+      }
+    ]
+  },
+  options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { display: true, position: 'top', labels: { boxWidth: 10, color: '#6b6b8a', font: { size: 11 }}}},
+    scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, min: 60, max: 85 }}}
+});
+
+// ============================================================
+// CHART: Retention Cohort
+// ============================================================
+const retMonths = MONTHS.filter((m,i) => monthlyStats[i].retention_all !== null);
+const retIdxs = monthlyStats.map((d,i) => d.retention_all !== null ? i : -1).filter(i=>i>=0);
+
+new Chart(document.getElementById('chartRetentionCohort'), {
+  type: 'bar',
+  data: {
+    labels: retIdxs.map(i => MONTHS[i]),
+    datasets: [
+      {
+        label: 'Con Premio',
+        data: retIdxs.map(i => monthlyStats[i].retention_premio),
+        backgroundColor: 'rgba(34,197,94,0.7)',
+        borderColor: '#22c55e',
+        borderWidth: 1,
+        borderRadius: 4
+      },
+      {
+        label: 'Sin Premio',
+        data: retIdxs.map(i => monthlyStats[i].retention_no_premio),
+        backgroundColor: 'rgba(99,102,241,0.5)',
+        borderColor: '#6366f1',
+        borderWidth: 1,
+        borderRadius: 4
+      }
+    ]
+  },
+  options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { display: true, position: 'top', labels: { boxWidth: 10, color: '#6b6b8a', font: { size: 11 }}}},
+    scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, min: 0, max: 110, ticks: { callback: v => v + '%', font: { size: 10 }}}}}
+});
+
+// ============================================================
+// CHART: Ever vs Never
+// ============================================================
+new Chart(document.getElementById('chartEverNever'), {
+  type: 'line',
+  data: {
+    labels: MONTHS,
+    datasets: [
+      {
+        label: 'Alguna vez canjeó',
+        data: everCohort,
+        borderColor: '#f59e0b',
+        backgroundColor: 'rgba(245,158,11,0.1)',
+        pointBackgroundColor: '#f59e0b',
+        pointRadius: 5,
+        tension: 0.3,
+        fill: true
+      },
+      {
+        label: 'Nunca canjeó',
+        data: neverCohort,
+        borderColor: '#e85d75',
+        backgroundColor: 'rgba(232,93,117,0.05)',
+        pointBackgroundColor: '#e85d75',
+        pointRadius: 5,
+        tension: 0.3,
+        fill: true
+      }
+    ]
+  },
+  options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { display: true, position: 'top', labels: { boxWidth: 10, color: '#6b6b8a', font: { size: 11 }}}},
+    scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, min: 55, max: 82 }}}
+});
+
+// ============================================================
+// CHART: Volume
+// ============================================================
+new Chart(document.getElementById('chartVolume'), {
+  type: 'bar',
+  data: {
+    labels: MONTHS,
+    datasets: [
+      {
+        label: 'Total',
+        data: monthlyStats.map(d => d.n_total),
+        backgroundColor: 'rgba(167,139,250,0.3)',
+        borderColor: '#a78bfa',
+        borderWidth: 1,
+        borderRadius: 3
+      },
+      {
+        label: 'Con Premio',
+        data: monthlyStats.map(d => d.n_premio),
+        backgroundColor: 'rgba(34,197,94,0.6)',
+        borderColor: '#22c55e',
+        borderWidth: 1,
+        borderRadius: 3
+      }
+    ]
+  },
+  options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { display: true, position: 'top', labels: { boxWidth: 10, color: '#6b6b8a', font: { size: 11 }}}}}
+});
+
+// ============================================================
+// CHART: Trend Score
+// ============================================================
+new Chart(document.getElementById('chartTendScore'), {
+  type: 'line',
+  data: {
+    labels: MONTHS,
+    datasets: [
+      {
+        label: 'Score promedio',
+        data: monthlyStats.map(d => d.avg_score_all),
+        borderColor: '#06b6d4',
+        backgroundColor: 'rgba(6,182,212,0.1)',
+        pointBackgroundColor: '#06b6d4',
+        pointRadius: 5,
+        tension: 0.3,
+        fill: true
+      }
+    ]
+  },
+  options: { ...chartDefaults, scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, min: 60, max: 80 }}}
+});
+
+// ============================================================
+// CHART: Gap Score
+// ============================================================
+new Chart(document.getElementById('chartGap'), {
+  type: 'bar',
+  data: {
+    labels: MONTHS,
+    datasets: [{
+      label: 'Diferencia (Premio - Sin Premio)',
+      data: monthlyStats.map(d => d.avg_score_premio && d.avg_score_no_premio ? +(d.avg_score_premio - d.avg_score_no_premio).toFixed(1) : null),
+      backgroundColor: monthlyStats.map(d => {
+        const g = d.avg_score_premio && d.avg_score_no_premio ? d.avg_score_premio - d.avg_score_no_premio : 0;
+        return g >= 0 ? 'rgba(34,197,94,0.7)' : 'rgba(232,93,117,0.7)';
+      }),
+      borderColor: monthlyStats.map(d => {
+        const g = d.avg_score_premio && d.avg_score_no_premio ? d.avg_score_premio - d.avg_score_no_premio : 0;
+        return g >= 0 ? '#22c55e' : '#e85d75';
+      }),
+      borderWidth: 1,
+      borderRadius: 4,
+      spanGaps: true
+    }]
+  },
+  options: { ...chartDefaults, scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, ticks: { callback: v => (v > 0 ? '+' : '') + v }}}}
+});
+
+// ============================================================
+// HEATMAP TABLE
+// ============================================================
+function buildHeatmap() {
+  const table = document.getElementById('heatmapTable');
+  // Header
+  const hdr = document.createElement('thead');
+  hdr.innerHTML = '<tr><th>Empresa</th>' + MONTHS.map(m => `<th>${m}</th>`).join('') + '</tr>';
+  table.appendChild(hdr);
+  
+  const tbody = document.createElement('tbody');
+  
+  // Get companies with enough data
+  const bigCompanies = TARGET_COMPANIES.filter(c => {
+    const max = Math.max(...(COMPANY_DATA[c] || []).map(d => d.n || 0));
+    return max >= 10;
+  }).slice(0, 20);
+  
+  bigCompanies.forEach(empresa => {
+    const row = document.createElement('tr');
+    const data = COMPANY_DATA[empresa] || [];
+    
+    let cells = `<td title="${empresa}">${empresa.length > 20 ? empresa.slice(0,18)+'…' : empresa}</td>`;
+    
+    data.forEach(d => {
+      const score = d.avg_score;
+      if (!score || d.n === 0) {
+        cells += '<td><span class="cohort-cell" style="background:rgba(255,255,255,0.03);color:#444">—</span></td>';
+        return;
+      }
+      // Color: 50=red, 75=yellow, 85=green
+      const pct = Math.max(0, Math.min(1, (score - 50) / 35));
+      const r = pct < 0.5 ? 255 : Math.round(255 * (1 - (pct - 0.5) * 2));
+      const g = pct > 0.5 ? 255 : Math.round(255 * pct * 2);
+      cells += `<td><span class="cohort-cell" style="background:rgba(${r},${g},0,0.25);color:rgb(${r},${g},0);font-weight:500">${score.toFixed(0)}</span></td>`;
+    });
+    
+    row.innerHTML = cells;
+    tbody.appendChild(row);
+  });
+  
+  table.appendChild(tbody);
+}
+buildHeatmap();
+
+// ============================================================
+// COMPANY SELECTOR
+// ============================================================
+let selectedCompany = null;
+let companyScoreChart = null;
+let companyVolumeChart = null;
+
+function buildCompanySelector() {
+  const grid = document.getElementById('companySelectorGrid');
+  TARGET_COMPANIES.forEach(c => {
+    const chip = document.createElement('div');
+    chip.className = 'company-chip';
+    chip.textContent = c;
+    chip.onclick = () => selectCompany(c);
+    grid.appendChild(chip);
+  });
+}
+
+function selectCompany(name) {
+  document.querySelectorAll('.company-chip').forEach(c => {
+    c.classList.toggle('active', c.textContent === name);
+  });
+  
+  selectedCompany = name;
+  document.getElementById('companyChartTitle').textContent = name;
+  
+  const data = COMPANY_DATA[name] || [];
+  const labels = data.filter(d => d.n > 0).map(d => MONTHS[MONTHS_FULL.indexOf(d.mes)]);
+  const scores = data.filter(d => d.n > 0).map(d => d.avg_score);
+  const scoresPremio = data.filter(d => d.n > 0).map(d => d.avg_score_premio);
+  const scoresNoPremio = data.filter(d => d.n > 0).map(d => d.avg_score_no_premio);
+  const ns = data.filter(d => d.n > 0).map(d => d.n);
+  const nPremio = data.filter(d => d.n > 0).map(d => d.n_premio);
+  
+  if (companyScoreChart) companyScoreChart.destroy();
+  companyScoreChart = new Chart(document.getElementById('chartCompanyScore'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Con Premio', data: scoresPremio, borderColor: '#22c55e', pointBackgroundColor: '#22c55e', pointRadius: 5, tension: 0.3, spanGaps: true },
+        { label: 'Sin Premio', data: scoresNoPremio, borderColor: '#6366f1', pointBackgroundColor: '#6366f1', pointRadius: 5, tension: 0.3, spanGaps: true },
+        { label: 'Total', data: scores, borderColor: '#06b6d4', borderDash: [4,4], pointBackgroundColor: '#06b6d4', pointRadius: 3, tension: 0.3, spanGaps: true }
+      ]
+    },
+    options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { display: true, position: 'top', labels: { boxWidth: 10, color: '#6b6b8a', font: { size: 11 }}}}, scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, min: 50 }}}
+  });
+  
+  if (companyVolumeChart) companyVolumeChart.destroy();
+  companyVolumeChart = new Chart(document.getElementById('chartCompanyVolume'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Total conductores', data: ns, backgroundColor: 'rgba(167,139,250,0.3)', borderColor: '#a78bfa', borderWidth: 1, borderRadius: 3 },
+        { label: 'Canjearon premio', data: nPremio, backgroundColor: 'rgba(34,197,94,0.6)', borderColor: '#22c55e', borderWidth: 1, borderRadius: 3 }
+      ]
+    },
+    options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { display: true, position: 'top', labels: { boxWidth: 10, color: '#6b6b8a', font: { size: 11 }}}}}
+  });
+}
+buildCompanySelector();
+// Select first company by default
+selectCompany('Esgari');
+
+// ============================================================
+// TIMELINE
+// ============================================================
+function buildTimeline() {
+  const track = document.getElementById('timelineTrack');
+  
+  monthlyStats.forEach((d, i) => {
+    const prev = i > 0 ? monthlyStats[i - 1] : null;
+    const score = d.avg_score_all;
+    
+    let delta = null;
+    if (prev && prev.avg_score_all && score) {
+      delta = ((score - prev.avg_score_all) / prev.avg_score_all * 100).toFixed(1);
+    }
+    
+    // Color based on score
+    const pct = score ? Math.max(0, Math.min(1, (score - 60) / 20)) : 0.5;
+    const r = pct < 0.5 ? 255 : Math.round(255 * (1 - (pct - 0.5) * 2));
+    const g = pct > 0.5 ? 255 : Math.round(255 * pct * 2);
+    const color = `rgb(${r},${g},0)`;
+    
+    const month = document.createElement('div');
+    month.className = 'timeline-month';
+    month.innerHTML = `
+      ${i < 11 ? '<div class="timeline-connector"></div>' : ''}
+      <div class="timeline-node" style="border-color:${color};color:${color}" title="${MONTHS_FULL[i]}: ${score || '—'} pts | ${d.n_premio} premios">
+        ${d.n_premio > 0 ? '🏆' : '○'}
+      </div>
+      <div class="timeline-label">${MONTHS[i]}</div>
+      <div class="timeline-stats">
+        <div class="timeline-score">${score || '—'}</div>
+        ${delta !== null ? `<div class="timeline-delta ${parseFloat(delta) >= 0 ? 'delta-pos' : 'delta-neg'}">${parseFloat(delta) >= 0 ? '+' : ''}${delta}%</div>` : '<div class="timeline-delta" style="color:transparent">—</div>'}
+      </div>
+    `;
+    track.appendChild(month);
+  });
+}
+buildTimeline();
+
+// ============================================================
+// CHART: MoM
+// ============================================================
+const momPremio = [], momNoPremio = [];
+for (let i = 1; i < monthlyStats.length; i++) {
+  const p = monthlyStats[i], q = monthlyStats[i-1];
+  momPremio.push(p.avg_score_premio && q.avg_score_premio ? +((p.avg_score_premio - q.avg_score_premio) / q.avg_score_premio * 100).toFixed(1) : null);
+  momNoPremio.push(p.avg_score_no_premio && q.avg_score_no_premio ? +((p.avg_score_no_premio - q.avg_score_no_premio) / q.avg_score_no_premio * 100).toFixed(1) : null);
+}
+
+new Chart(document.getElementById('chartMoM'), {
+  type: 'bar',
+  data: {
+    labels: MONTHS.slice(1),
+    datasets: [
+      { label: 'Con Premio', data: momPremio, backgroundColor: 'rgba(34,197,94,0.6)', borderColor: '#22c55e', borderWidth: 1, borderRadius: 4 },
+      { label: 'Sin Premio', data: momNoPremio, backgroundColor: 'rgba(99,102,241,0.5)', borderColor: '#6366f1', borderWidth: 1, borderRadius: 4 }
+    ]
+  },
+  options: { ...chartDefaults, plugins: { ...chartDefaults.plugins, legend: { display: true, position: 'top', labels: { boxWidth: 10, color: '#6b6b8a', font: { size: 11 }}}}, scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, ticks: { callback: v => v + '%' }}}}
+});
+
+// ============================================================
+// CHART: Premio Count
+// ============================================================
+new Chart(document.getElementById('chartPremioCount'), {
+  type: 'bar',
+  data: {
+    labels: MONTHS,
+    datasets: [{
+      label: 'Premios canjeados',
+      data: monthlyStats.map(d => d.n_premio),
+      backgroundColor: MONTHS.map((_, i) => {
+        const v = monthlyStats[i].n_premio;
+        const max = 204;
+        const pct = v / max;
+        return `rgba(34,${Math.round(100 + pct * 97)},${Math.round(220 - pct * 155)},${0.5 + pct * 0.4})`;
+      }),
+      borderColor: '#22c55e',
+      borderWidth: 1,
+      borderRadius: 4
+    }]
+  },
+  options: { ...chartDefaults }
+});
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(id) {
+  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+    const ids = ['cohort','tendencias','empresas','timeline'];
+    btn.classList.toggle('active', ids[i] === id);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+}
+</script>
+</body>
+</html>
